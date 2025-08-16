@@ -12,7 +12,7 @@ By default, the converter outputs Extended M3U (`#EXTM3U` and `#EXTINF` lines wi
 
 ```bash
 # Convert a Quod Libet playlist into a Rockbox playlist
-xspf_to_m3u.py /home/$USER/.config/quodlibet/playlists/playlist.xspf \\
+xspf_to_m3u.py /home/$USER/.config/quodlibet/playlists/playlist.xspf \
                /run/media/$USER/H2/Playlists/playlist.m3u
 ```
 
