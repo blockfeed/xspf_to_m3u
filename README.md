@@ -1,6 +1,6 @@
 # xspf_to_m3u
 
-Convert an [XSPF](https://xspf.org) playlist (e.g. exported from Quod Libet) into an M3U playlist suitable for Rockbox or [Gonic](https://github.com/sentriz/gonic).
+Convert an [XSPF](https://xspf.org) playlist (e.g. exported from [Quod Libet](https://quodlibet.readthedocs.io/)) into an M3U playlist suitable for [Rockbox](https://www.rockbox.org/) or [Gonic](https://github.com/sentriz/gonic).
 
 ## Features
 
