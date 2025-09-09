@@ -83,6 +83,10 @@ def parse_tracks(root):
         })
     return out
 
+def join_posix(base: str, rel: str) -> str:
+    # Join using forward slashes, avoiding duplicate separators
+    return (base.rstrip("/") + "/" + rel.lstrip("/"))
+
 def main():
     epilog = """\
 Examples:
@@ -97,9 +101,12 @@ Examples:
 
   # Write minimal M3U (no #EXTM3U/#EXTINF)
   xspf_to_m3u.py library.xspf rockbox.m3u --no-extm3u
+
+  # Gonic format (prepend headers and prefix each path with a base library path)
+  xspf_to_m3u.py in.xspf gonic.m3u --gonic /mnt/g/Music/ --strip-after Music
 """
     ap = argparse.ArgumentParser(
-        description="Convert an XSPF playlist to an M3U suitable for Rockbox.",
+        description="Convert an XSPF playlist to M3U (Rockbox/Gonic).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=epilog
     )
@@ -110,6 +117,10 @@ Examples:
                     help="Folder name to strip everything up to (repeatable; case-insensitive). Default: Music")
     ap.add_argument("--no-extm3u", action="store_true",
                     help="Write a minimal M3U (omit #EXTM3U header and #EXTINF lines).")
+    ap.add_argument("--gonic", dest="gonic_base", metavar="BASE_PATH",
+                    help="Write a Gonic-style M3U. BASE_PATH is the absolute library prefix (e.g. /mnt/g/Music/). "
+                         "When set, #GONIC-* headers are written and paths are prefixed with BASE_PATH. "
+                         "Implies --no-extm3u.")
     args = ap.parse_args()
 
     try:
@@ -122,21 +133,37 @@ Examples:
     tracks = parse_tracks(root)
 
     lines = []
-    if not args.no_extm3u:
+    gonic_mode = bool(args.gonic_base)
+    if not args.no_extm3u and not gonic_mode:
         lines.append("#EXTM3U")
 
     seen = set()
     for t in tracks:
         rel = strip_to_rel(t["path"], anchors=args.anchors)
-        if not rel or rel in seen:
+        if not rel:
             continue
-        seen.add(rel)
-        if not args.no_extm3u:
+        # Determine output path
+        out_path = join_posix(args.gonic_base, rel) if gonic_mode else rel
+        if out_path in seen:
+            continue
+        seen.add(out_path)
+
+        if not args.no_extm3u and not gonic_mode:
             dur = t["duration_s"]
             dur_val = dur if isinstance(dur, int) and dur >= 0 else -1
             disp = display_title(t["creator"], t["title"], rel)
             lines.append(f"#EXTINF:{dur_val},{disp}")
-        lines.append(rel)
+        lines.append(out_path)
+
+    # If Gonic mode, prepend the GONIC headers
+    if gonic_mode:
+        name = Path(args.output_m3u).stem or ""
+        gonic_headers = [
+            f'#GONIC-NAME:"{name}"',
+            '#GONIC-COMMENT:""',
+            '#GONIC-IS-PUBLIC:"false"',
+        ]
+        lines = gonic_headers + lines
 
     with open(args.output_m3u, "w", encoding="utf-8", newline="\n") as f:
         for l in lines:
@@ -144,4 +171,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-
